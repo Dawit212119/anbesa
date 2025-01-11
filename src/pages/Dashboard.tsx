@@ -17,14 +17,19 @@ export default function Dashboard() {
   const [selectOption, setSelectOption] = useState("");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [routeData, setRouteData] = useState("");
+  const [id, setid] = useState(0);
   const NavigatetoRoute = (route: string) => {
     setRouteData(route);
     setSelectOption("addroute");
   };
+  const NavigatetoRouteto = (id: number) => {
+    setid(id);
+    setSelectOption("updateroute");
+  };
   const forms = {
     addroute: <AddRoute Routename={routeData} />,
-    updateroute: <UpdateRoute />,
-    manageroute: <ManageApplications />,
+    updateroute: <UpdateRoute Routename={id} />,
+    manageroute: <ManageApplications NavigatetoRouteto={NavigatetoRouteto} />,
     notify: <NotfiyRoutes NavigatetoRoute={NavigatetoRoute} />,
   };
 
@@ -67,7 +72,7 @@ export default function Dashboard() {
             onClick={() => setSelectOption("updateroute")}
           >
             <MdFormatListBulleted />
-            Update Route
+            Current Route
           </li>
           <li
             className={`cursor-pointer flex items-center gap-2 font-bold

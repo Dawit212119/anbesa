@@ -6,85 +6,97 @@ import { MdAccessTimeFilled, MdDone, MdRemoveRedEye } from "react-icons/md";
 import { FaTimesCircle } from "react-icons/fa";
 import Status from "./Admincomponent/Status";
 
+import axios from "axios";
+import toast from "react-hot-toast";
+import { duration } from "@mui/material";
+import { Link } from "react-router-dom";
+const apiUrl = "http://localhost:8000";
+interface Route {
+  id: number; // or string, depending on your backend response
+  Route: string;
+  Time: string;
+  busNumber: string;
+}
 const paginationModel = { page: 0, pageSize: 5 };
-
-export default function ManageApplications() {
-  const [fetchrows, setRows] = React.useState([]);
+interface NotfiyRouteProps {
+  NavigatetoRouteto: (id: number) => void;
+}
+const UpdateRoute: React.FC<NotfiyRouteProps> = ({ NavigatetoRouteto }) => {
+  const [fetchrows, setRows] = React.useState<Route[]>([]);
 
   ///////     fetching the request data
-
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    console.error("Token not found");
+    return;
+  }
   React.useEffect(() => {
     const fetchingData = async () => {
-      const Response = await fetch("/route/getall/");
-      const data = await Response.json();
-      if (data) {
-        setRows(data);
+      const res = await axios.get(`${apiUrl}/api/routes`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log(res.data);
+      if (res.data) {
+        const processedRows = res.data.map((route, index) => ({
+          id: route.id,
+          Route: `${route.start_location} - ${route.end_location}`,
+          Time: `${route.duration} hours`,
+          busNumber: route.bus_number,
+        }));
+        setRows(processedRows);
+        console.log(fetchingData);
       }
     };
     fetchingData();
   }, []);
+  const handleviewed = (id: number) => {
+    console.log(id);
+    NavigatetoRouteto(id);
+  };
+  const handleDenied = async (id: number) => {
+    console.log(Number(id));
+    try {
+      const res = await axios.delete(`${apiUrl}/api/routes/${id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  const handleDenied = (id: string) => {
+      if (res.status === 200 || res.status === 204) {
+        setRows((prevRows) => prevRows.filter((row) => row.id !== id));
+      }
+    } catch (error) {}
+
     console.log(id);
   };
-  const handlePending = (id: string) => {
-    console.log(id);
-  };
-  const handleReviewed = (id: string) => {};
-  const handleviewed = (id: string) => {};
+
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 200 },
     { field: "Route", headerName: "Route", width: 200 },
     {
       field: "Time",
       headerName: "Time",
-      type: "date",
+      type: "string",
       width: 200,
     },
     {
-      field: "Status",
-      headerName: "Status",
-      description: "This column has a value getter and is not sortable.",
-      sortable: false,
+      field: "busNumber",
+      headerName: "Bus_Number",
+      type: "number",
       width: 200,
-      renderCell: (params) => {
-        return (
-          <div>
-            {params.row.status === "pending" ? (
-              <Status
-                text="Pending"
-                icon={MdAccessTimeFilled}
-                bg="bg-slate-200"
-                color="text-slate-700"
-              />
-            ) : params.row.status === "rejected" ? (
-              <Status
-                text="Rejected"
-                icon={FaTimesCircle}
-                bg="bg-red-200"
-                color="text-red-700"
-              />
-            ) : params.row.status === "accepted" ? (
-              <Status
-                text="Accepted"
-                icon={MdDone}
-                bg="bg-green-200"
-                color="text-green-700"
-              />
-            ) : (
-              <></>
-            )}
-          </div>
-        );
-      },
     },
+
     {
       field: "Action",
       headerName: "Action",
       width: 200,
       renderCell: (params) => {
         return (
-          <div className="flex justify-between gap-4 w-full my-2">
+          <div className="flex text-center justify-around gap-4 w-full my-2">
             <Actionbtn
               icon={FaTimesCircle}
               onClick={() => {
@@ -92,15 +104,9 @@ export default function ManageApplications() {
               }}
             />
             <Actionbtn
-              icon={MdAccessTimeFilled}
+              icon={MdRemoveRedEye}
               onClick={() => {
-                handlePending(params.row.id);
-              }}
-            />
-            <Actionbtn
-              icon={MdDone}
-              onClick={() => {
-                handleReviewed(params.row.id);
+                handleviewed(params.row.id);
               }}
             />
           </div>
@@ -109,26 +115,17 @@ export default function ManageApplications() {
     },
   ];
 
-  const rows = [
-    { id: 1, Time: new Date(), Route: "bethel-alembank", Status: "Pending" },
-    { id: 2, Time: new Date(), Route: "pissa-adisugebya", Status: "Pending" },
-    { id: 3, Time: new Date(), Route: "megenagna-abado", Status: "Accepted" },
-    { id: 4, Time: new Date(), Route: "ayat-cmc", Status: "Pending" },
-    { id: 5, Time: new Date(), Route: "bole-4killo", Status: "Pending" },
-    { id: 6, Time: new Date(), Route: "4killo-mexico", Status: "Pending" },
-    { id: 7, Time: new Date(), Route: "mexico-sheromeda", Status: "Pending" },
-    { id: 8, Time: new Date(), Route: "ferensay-6killo", Status: "Pending" },
-    { id: 9, Time: new Date(), Route: "kalite-koyefetch", Status: "Pending" },
-  ];
-
   return (
     <>
       <div className="font-bold text-xl mb-7 text-center">
-        Manage <span className="text-orange-500 ">Route</span>{" "}
+        Current <span className="text-orange-500 ">Route</span>{" "}
       </div>
-      <Paper sx={{ height: 400, width: "100%" }} className="bg-slate-400">
+      <Paper
+        sx={{ height: 400, width: "100%" }}
+        className="bg-slate-400 text-center"
+      >
         <DataGrid
-          rows={rows}
+          rows={fetchrows}
           columns={columns}
           initialState={{ pagination: { paginationModel } }}
           pageSizeOptions={[5, 10]}
@@ -138,4 +135,6 @@ export default function ManageApplications() {
       </Paper>
     </>
   );
-}
+};
+
+export default UpdateRoute;

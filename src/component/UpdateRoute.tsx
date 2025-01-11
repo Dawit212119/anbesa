@@ -1,178 +1,80 @@
-import * as React from "react";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import Paper from "@mui/material/Paper";
-import Actionbtn from "./Admincomponent/Actionbtn";
-import { MdAccessTimeFilled, MdDone, MdRemoveRedEye } from "react-icons/md";
-import { FaTimesCircle } from "react-icons/fa";
-import Status from "./Admincomponent/Status";
-
 import axios from "axios";
 import toast from "react-hot-toast";
 import { duration } from "@mui/material";
 const apiUrl = "http://localhost:8000";
-interface Route {
-  id: number; // or string, depending on your backend response
-  Route: string;
-  Time: string;
-  busNumber: string;
+import React, { useEffect, useState } from "react";
+interface RouteDetailsData {
+  start_location: string;
+  end_location: string;
+  distance: number;
+  duration: number;
+  bus_number: string;
+  bus_stops: string;
 }
-const paginationModel = { page: 0, pageSize: 5 };
 
-export default function UpdateRoute() {
-  const [fetchrows, setRows] = React.useState<Route[]>([]);
+interface AddRouteProps {
+  Routename?: number;
+}
 
-  ///////     fetching the request data
+const RouteDetails: React.FC<AddRouteProps> = ({ Routename }) => {
+  console.log(Routename);
+  const id = Number(Routename);
+  console.log(id);
+  const [routeDetails, setRouteDetails] = useState<RouteDetailsData | null>(
+    null
+  );
+  const [error, setError] = useState("");
   const token = localStorage.getItem("access_token");
   if (!token) {
     console.error("Token not found");
     return;
   }
-  React.useEffect(() => {
-    const fetchingData = async () => {
-      const res = await axios.get(`${apiUrl}/api/routes`, {
+  useEffect(() => {
+    const fetchRouteDetails = async () => {
+      const res = await axios.get(`${apiUrl}/api/routes/${id}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log(res.data);
       if (res.data) {
-        const processedRows = res.data.map((route, index) => ({
-          id: route.id, // Unique ID for each row
-          Route: `${route.start_location} - ${route.end_location}`,
-          Time: `${route.duration} hours`,
-          busNumber: route.bus_number,
-        }));
-        setRows(processedRows);
-        console.log(fetchingData);
+        setRouteDetails(res.data);
+        console.log(res.data);
       }
     };
-    fetchingData();
-  }, []);
-
-  const handleDenied = async (id: number) => {
-    console.log(id);
-    try {
-      const res = await axios.delete(`${apiUrl}/api/routes/${id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 200 || res.status === 204) {
-        setRows((prevRows) => prevRows.filter((row) => row.id !== id));
-      }
-    } catch (error) {}
-
-    console.log(id);
-  };
-
-  const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 200 },
-    { field: "Route", headerName: "Route", width: 200 },
-    {
-      field: "Time",
-      headerName: "Time",
-      type: "string",
-      width: 200,
-    },
-    {
-      field: "busNumber",
-      headerName: "Bus_Number",
-      type: "number",
-      width: 200,
-    },
-    // {
-    //   field: "Status",
-    //   headerName: "Status",
-    //   description: "This column has a value getter and is not sortable.",
-    //   sortable: false,
-    //   width: 200,
-    //   renderCell: (params) => {
-    //     return (
-    //       <div>
-    //         {params.row.status === "pending" ? (
-    //           <Status
-    //             text="Pending"
-    //             icon={MdAccessTimeFilled}
-    //             bg="bg-slate-200"
-    //             color="text-slate-700"
-    //           />
-    //         ) : params.row.status === "rejected" ? (
-    //           <Status
-    //             text="Rejected"
-    //             icon={FaTimesCircle}
-    //             bg="bg-red-200"
-    //             color="text-red-700"
-    //           />
-    //         ) : params.row.status === "accepted" ? (
-    //           <Status
-    //             text="Accepted"
-    //             icon={MdDone}
-    //             bg="bg-green-200"
-    //             color="text-green-700"
-    //           />
-    //         ) : (
-    //           <></>
-    //         )}
-    //       </div>
-    //     );
-    //   },
-    // },
-    {
-      field: "Action",
-      headerName: "Action",
-      width: 200,
-      renderCell: (params) => {
-        return (
-          <div className="flex text-center justify-between gap-4 w-full my-2">
-            <Actionbtn
-              icon={FaTimesCircle}
-              onClick={() => {
-                handleDenied(params.row.id);
-              }}
-            />
-          </div>
-        );
-      },
-    },
-    //         <Actionbtn
-    //           icon={MdAccessTimeFilled}
-    //           onClick={() => {
-    //             handlePending(params.row.id);
-    //           }}
-    //         />
-    //         <Actionbtn
-    //           icon={MdDone}
-    //           onClick={() => {
-    //             handleReviewed(params.row.id);
-    //           }}
-    //         />
-    //       </div>
-    //     );
-    //   },
-    // },
-  ];
-
+    if (id && !isNaN(id)) {
+      fetchRouteDetails();
+    }
+  }, [id]);
   return (
-    <>
-      <div className="font-bold text-xl mb-7 text-center">
-        Manage <span className="text-orange-500 ">Route</span>{" "}
-      </div>
-      <Paper
-        sx={{ height: 400, width: "100%" }}
-        className="bg-slate-400 text-center"
-      >
-        <DataGrid
-          rows={fetchrows}
-          columns={columns}
-          initialState={{ pagination: { paginationModel } }}
-          pageSizeOptions={[5, 10]}
-          checkboxSelection
-          sx={{ border: 0 }}
-        />
-      </Paper>
-    </>
+    <div className="route-details p-4 bg-gray-100 text-black rounded shadow-md max-w-md mx-auto">
+      {error && <p className="error text-red-500 mb-4">{error}</p>}
+      {routeDetails ? (
+        <div>
+          <h3 className="text-lg font-bold mb-4">Route Details</h3>
+          <p className="mb-2">
+            <strong>Start Location:</strong> {routeDetails.start_location}
+          </p>
+          <p className="mb-2">
+            <strong>End Location:</strong> {routeDetails.end_location}
+          </p>
+          <p className="mb-2 ">
+            <strong>Distance:</strong> {routeDetails.distance}
+          </p>
+          <p className="mb-2">
+            <strong>Duration:</strong> {routeDetails.duration}
+          </p>
+          <p className="mb-2">
+            <strong>Bus Number:</strong> {routeDetails.bus_number}
+          </p>
+          <p>
+            <strong>Bus Stops:</strong> {routeDetails.bus_stops}
+          </p>
+        </div>
+      ) : (
+        <p className="text-gray-500">Loading route details...</p>
+      )}
+    </div>
   );
-}
+};
+export default RouteDetails;
